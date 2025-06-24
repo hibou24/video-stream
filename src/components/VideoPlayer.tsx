@@ -1,32 +1,45 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { VideoControls } from './VideoControls';
 import { Timeline } from './Timeline';
+import { EnrichedTimeline } from './EnrichedTimeline';
+import { ChapterManager } from './ChapterManager';
 import { AnnotationOverlay } from './AnnotationOverlay';
-import { VideoData, Annotation } from '../types';
+import { VideoData, Annotation, Chapter, VideoSegment } from '../types';
 import { isYouTubeEmbed } from '../utils/videoUtils';
+import { Settings, Layers } from 'lucide-react';
 
 interface VideoPlayerProps {
   video: VideoData;
   annotations: Annotation[];
+  chapters?: Chapter[];
+  segments?: VideoSegment[];
   currentTime: number;
   isPlaying: boolean;
   onTimeUpdate: (time: number) => void;
   onPlayPause: (playing: boolean) => void;
+  onChaptersChange?: (chapters: Chapter[]) => void;
+  onSegmentsChange?: (segments: VideoSegment[]) => void;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   video,
   annotations,
+  chapters = [],
+  segments = [],
   currentTime,
   isPlaying,
   onTimeUpdate,
-  onPlayPause
+  onPlayPause,
+  onChaptersChange,
+  onSegmentsChange
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [showEnrichedTimeline, setShowEnrichedTimeline] = useState(true);
+  const [showChapterManager, setShowChapterManager] = useState(false);
 
 
 
@@ -194,18 +207,62 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       </div>
 
       <div className="bg-gray-900 p-4">
-        {/* Only show timeline for non-YouTube videos */}
+        {/* Timeline Controls */}
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-white">{video.title}</h1>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowEnrichedTimeline(!showEnrichedTimeline)}
+              className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm transition-colors ${showEnrichedTimeline
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>Timeline enrichie</span>
+            </button>
+            {onChaptersChange && onSegmentsChange && (
+              <button
+                onClick={() => setShowChapterManager(!showChapterManager)}
+                className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm transition-colors ${showChapterManager
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+              >
+                <Settings className="w-4 h-4" />
+                <span>Gérer le contenu</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Timeline Display */}
         {!isYouTubeEmbed(video.url) && (
-          <Timeline
-            currentTime={currentTime}
-            duration={duration}
-            annotations={annotations}
-            onSeek={handleSeek}
-          />
+          <div className="mb-4">
+            {showEnrichedTimeline ? (
+              <EnrichedTimeline
+                currentTime={currentTime}
+                duration={duration}
+                annotations={annotations}
+                chapters={chapters}
+                segments={segments}
+                onSeek={handleSeek}
+                isPlaying={isPlaying}
+                onPlayPause={() => onPlayPause(!isPlaying)}
+              />
+            ) : (
+              <Timeline
+                currentTime={currentTime}
+                duration={duration}
+                annotations={annotations}
+                onSeek={handleSeek}
+              />
+            )}
+          </div>
         )}
 
+        {/* Video Info */}
         <div className="mt-4">
-          <h1 className="text-2xl font-bold text-white mb-2">{video.title}</h1>
           <div className="flex items-center space-x-4 text-gray-400">
             <span>{video.author}</span>
             <span>•</span>
@@ -230,6 +287,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
           )}
         </div>
+
+        {/* Chapter Manager */}
+        {showChapterManager && onChaptersChange && onSegmentsChange && (
+          <div className="mt-6">
+            <ChapterManager
+              chapters={chapters}
+              segments={segments}
+              duration={duration}
+              currentTime={currentTime}
+              onChaptersChange={onChaptersChange}
+              onSegmentsChange={onSegmentsChange}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

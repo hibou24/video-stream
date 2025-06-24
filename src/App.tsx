@@ -9,6 +9,7 @@ import { VideoUploadModal } from './components/VideoUpload/VideoUploadModal';
 import { CollaborationPanel } from './components/Collaboration/CollaborationPanel';
 import { ClipEditor } from './components/VideoEditor/ClipEditor';
 import { FirebaseProvider } from './components/FirebaseProvider';
+import { EnrichedTimelineDemo } from './components/EnrichedTimelineDemo';
 
 import { VideoData } from './types';
 import { useAuthStore } from './store/authStore';
@@ -98,6 +99,7 @@ function App() {
               <Route path="/collaborate/:sessionId" element={
                 <div>Collaboration session page (to be implemented)</div>
               } />
+              <Route path="/demo/timeline" element={<EnrichedTimelineDemo />} />
             </Routes>
           </main>
 

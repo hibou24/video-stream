@@ -70,7 +70,23 @@ npm install
    VITE_FIREBASE_APP_ID=votre_app_id
    ```
 
-### 3. Démarrer l'application
+### 3. Déployer les règles et indexes Firebase
+
+1. **Déployer les règles de sécurité Firestore**
+   - Copiez le contenu de `firestore.rules` dans la console Firebase (Firestore > Rules)
+   - Ou utilisez Firebase CLI : `firebase deploy --only firestore:rules`
+
+2. **Déployer les règles de sécurité Storage**
+   - Copiez le contenu de `storage.rules` dans la console Firebase (Storage > Rules)
+   - Ou utilisez Firebase CLI : `firebase deploy --only storage`
+
+3. **Déployer les indexes Firestore** (Important pour les vidéos publiques !)
+   ```bash
+   ./deploy-indexes.sh
+   ```
+   Ou manuellement : `firebase deploy --only firestore:indexes`
+
+### 4. Démarrer l'application
 ```bash
 npm run dev
 ```
@@ -216,6 +232,16 @@ service cloud.firestore {
 - Vérifiez que l'URL de la vidéo est accessible
 - Contrôlez les paramètres CORS du serveur vidéo
 - Testez avec des vidéos publiques (YouTube, Vimeo)
+
+### Les vidéos publiques n'apparaissent pas pour les autres utilisateurs
+- **Cause** : Les indexes Firestore ne sont pas déployés
+- **Solution** : 
+  1. Déployez les indexes : `./deploy-indexes.sh` ou `firebase deploy --only firestore:indexes`
+  2. Attendez 5-10 minutes que les index soient créés
+  3. Vérifiez dans la console Firebase (Firestore > Indexes) que tous les indexes sont "Activés"
+- **Alternative** : Activez manuellement les indexes dans la console Firebase :
+  - Collection: `videos`, Fields: `isPublic` (Ascending), `uploadDate` (Descending)
+  - Collection: `videos`, Fields: `authorId` (Ascending), `uploadDate` (Descending)
 
 ## 📄 Licence
 

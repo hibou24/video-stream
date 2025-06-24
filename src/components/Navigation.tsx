@@ -1,6 +1,7 @@
 import React from 'react';
-import { Play, Library, Settings, User, ArrowLeft, Upload, LogOut } from 'lucide-react';
+import { Play, Library, ArrowLeft, Upload, LogOut, Layers } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { Link } from 'react-router-dom';
 
 interface NavigationProps {
   currentView: 'library' | 'player';
@@ -32,7 +33,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
             ) : null}
-            
+
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <Play className="w-4 h-4 text-white" />
@@ -44,15 +45,22 @@ export const Navigation: React.FC<NavigationProps> = ({
           <div className="flex items-center space-x-6">
             <button
               onClick={() => onViewChange('library')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                currentView === 'library'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
-              }`}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${currentView === 'library'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                }`}
             >
               <Library className="w-4 h-4" />
               <span>Library</span>
             </button>
+
+            <Link
+              to="/demo/timeline"
+              className="flex items-center space-x-2 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <Layers className="w-4 h-4" />
+              <span>Demo Timeline</span>
+            </Link>
 
             {onUpload && (
               <button

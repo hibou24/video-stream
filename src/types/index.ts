@@ -71,7 +71,29 @@ export interface CollaborationSession {
 }
 
 export interface Chapter {
+  id: string;
   time: number;
   title: string;
+  description?: string;
   thumbnail?: string;
+  color?: string;
+}
+
+export interface VideoSegment {
+  id: string;
+  startTime: number;
+  endTime: number;
+  title: string;
+  description?: string;
+  color?: string;
+  type: 'intro' | 'content' | 'outro' | 'ad' | 'transition' | 'highlight';
+}
+
+export interface TimelineMarker {
+  id: string;
+  time: number;
+  type: 'annotation' | 'chapter' | 'segment-start' | 'segment-end' | 'bookmark';
+  title: string;
+  color: string;
+  data?: Annotation | Chapter | VideoSegment; // Additional data for the marker
 }

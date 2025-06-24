@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { VideoData, Annotation, VideoClip, Playlist } from '../types';
+import { VideoData, Annotation, VideoClip, Playlist, Chapter, VideoSegment } from '../types';
 import { videoService } from '../services/videoService';
 import { annotationService } from '../services/annotationService';
 
@@ -8,13 +8,17 @@ interface VideoState {
   annotations: Annotation[];
   clips: VideoClip[];
   playlists: Playlist[];
+  chapters: Chapter[];
+  segments: VideoSegment[];
   currentVideo: VideoData | null;
   currentPlaylist: Playlist | null;
   isLoading: boolean;
   error: string | null;
   // Video operations
   loadUserVideos: (userId: string) => Promise<void>;
-  addVideo: (video: Omit<VideoData, 'id' | 'uploadDate' | 'viewCount'>) => Promise<void>;
+  loadPublicVideos: () => Promise<void>;
+  loadAllVideos: (userId: string) => Promise<void>;
+  addVideo: (video: Omit<VideoData, 'id' | 'uploadDate' | 'viewCount'>) => Promise<string>;
   updateVideo: (id: string, updates: Partial<VideoData>) => Promise<void>;
   deleteVideo: (id: string) => Promise<void>;
   // Annotation operations
@@ -28,6 +32,11 @@ interface VideoState {
   setCurrentVideo: (video: VideoData | null) => void;
   getVideosByUser: (userId: string) => VideoData[];
   getAnnotationsByVideo: (videoId: string) => Annotation[];
+  // Chapter and segment operations
+  setVideoChapters: (videoId: string, chapters: Chapter[]) => void;
+  setVideoSegments: (videoId: string, segments: VideoSegment[]) => void;
+  getVideoChapters: (videoId: string) => Chapter[];
+  getVideoSegments: (videoId: string) => VideoSegment[];
   clearError: () => void;
 }
 
@@ -55,6 +64,8 @@ export const useVideoStore = create<VideoState>((set, get) => ({
   annotations: [],
   clips: [],
   playlists: [],
+  chapters: [],
+  segments: [],
   currentVideo: null,
   currentPlaylist: null,
   isLoading: false,
@@ -74,6 +85,34 @@ export const useVideoStore = create<VideoState>((set, get) => ({
     }
   },
 
+  // Load public videos from Firebase
+  loadPublicVideos: async () => {
+    try {
+      set({ isLoading: true, error: null });
+      const videos = await videoService.getPublicVideos();
+      set({ videos, isLoading: false });
+    } catch (error) {
+      set({ 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Erreur de chargement des vidéos publiques' 
+      });
+    }
+  },
+
+  // Load all videos (public + user's private videos)
+  loadAllVideos: async (userId: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      const videos = await videoService.getAllVideos(userId);
+      set({ videos, isLoading: false });
+    } catch (error) {
+      set({ 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Erreur de chargement de toutes les vidéos' 
+      });
+    }
+  },
+
   addVideo: async (videoData) => {
     try {
       set({ isLoading: true, error: null });
@@ -82,7 +121,21 @@ export const useVideoStore = create<VideoState>((set, get) => ({
       const newVideo = await videoService.getVideo(videoId);
       if (newVideo) {
         set(state => ({ videos: [...state.videos, newVideo], isLoading: false }));
+        
+        // Reload all videos to ensure consistency (especially for public video visibility)
+        const currentUser = videoData.authorId;
+        if (currentUser) {
+          setTimeout(async () => {
+            try {
+              const allVideos = await videoService.getAllVideos(currentUser);
+              set({ videos: allVideos });
+            } catch (error) {
+              console.warn('Could not reload videos after adding:', error);
+            }
+          }, 1000); // Small delay to ensure Firebase has processed the new video
+        }
       }
+      return videoId;
     } catch (error) {
       set({ 
         isLoading: false, 
@@ -224,6 +277,39 @@ export const useVideoStore = create<VideoState>((set, get) => ({
 
   getAnnotationsByVideo: (videoId) => {
     return get().annotations.filter(annotation => annotation.videoId === videoId);
+  },
+
+  // Chapter and segment operations
+  setVideoChapters: (videoId, chapters) => {
+    // For now, store chapters locally. In a real app, you'd save to Firebase
+    set(state => ({
+      chapters: [
+        ...state.chapters.filter(c => !c.id.startsWith(`${videoId}-`)),
+        ...chapters.map(c => ({ ...c, id: `${videoId}-${c.id}` }))
+      ]
+    }));
+  },
+
+  setVideoSegments: (videoId, segments) => {
+    // For now, store segments locally. In a real app, you'd save to Firebase
+    set(state => ({
+      segments: [
+        ...state.segments.filter(s => !s.id.startsWith(`${videoId}-`)),
+        ...segments.map(s => ({ ...s, id: `${videoId}-${s.id}` }))
+      ]
+    }));
+  },
+
+  getVideoChapters: (videoId) => {
+    return get().chapters
+      .filter(chapter => chapter.id.startsWith(`${videoId}-`))
+      .map(chapter => ({ ...chapter, id: chapter.id.replace(`${videoId}-`, '') }));
+  },
+
+  getVideoSegments: (videoId) => {
+    return get().segments
+      .filter(segment => segment.id.startsWith(`${videoId}-`))
+      .map(segment => ({ ...segment, id: segment.id.replace(`${videoId}-`, '') }));
   },
 
   clearError: () => {

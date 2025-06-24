@@ -8,16 +8,16 @@ interface FirebaseProviderProps {
 
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children }) => {
     const { user } = useAuthStore();
-    const { loadUserVideos } = useVideoStore();
+    const { loadAllVideos } = useVideoStore();
 
     // Note: Firebase Auth initialization is now handled in authStore.ts
 
     useEffect(() => {
-        // Load user videos when user is authenticated
+        // Load all videos (public + user's private) when user is authenticated
         if (user?.id) {
-            loadUserVideos(user.id);
+            loadAllVideos(user.id);
         }
-    }, [user?.id, loadUserVideos]);
+    }, [user?.id, loadAllVideos]);
 
     return <>{children}</>;
 }; 

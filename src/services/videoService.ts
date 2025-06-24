@@ -60,7 +60,7 @@ export const videoService = {
       const q = query(
         collection(db, 'videos'),
         where('authorId', '==', userId)
-        // orderBy('uploadDate', 'desc') // Temporarily removed - add back when index is ready
+        // orderBy('uploadDate', 'desc') // Temporarily disabled while index is building
       );
 
       const querySnapshot = await getDocs(q);
@@ -75,7 +75,8 @@ export const videoService = {
         } as VideoData);
       });
 
-      return videos;
+      // Manual sorting while index is building
+      return videos.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime());
     } catch (error) {
       console.error('Erreur lors de la récupération des vidéos:', error);
       throw error;
@@ -121,6 +122,61 @@ export const videoService = {
         callback(null);
       }
     });
+  },
+
+  // Obtenir toutes les vidéos publiques
+  async getPublicVideos(): Promise<VideoData[]> {
+    try {
+      const q = query(
+        collection(db, 'videos'),
+        where('isPublic', '==', true)
+        // orderBy('uploadDate', 'desc') // Temporarily disabled while index is building
+      );
+
+      const querySnapshot = await getDocs(q);
+      const videos: VideoData[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        videos.push({
+          id: doc.id,
+          ...data,
+          uploadDate: data.uploadDate.toDate(),
+        } as VideoData);
+      });
+
+      // Manual sorting while index is building
+      return videos.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime());
+    } catch (error) {
+      console.error('Erreur lors de la récupération des vidéos publiques:', error);
+      throw error;
+    }
+  },
+
+  // Obtenir toutes les vidéos (publiques + utilisateur connecté)
+  async getAllVideos(userId: string): Promise<VideoData[]> {
+    try {
+      const [publicVideos, userVideos] = await Promise.all([
+        this.getPublicVideos(),
+        this.getUserVideos(userId)
+      ]);
+
+      // Combine and deduplicate (in case user's public videos are in both arrays)
+      const allVideos = [...publicVideos];
+      
+      // Add user's private videos
+      userVideos.forEach(userVideo => {
+        if (!userVideo.isPublic) {
+          allVideos.push(userVideo);
+        }
+      });
+
+      // Sort by upload date
+      return allVideos.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime());
+    } catch (error) {
+      console.error('Erreur lors de la récupération de toutes les vidéos:', error);
+      throw error;
+    }
   },
 
   // Rechercher des vidéos par tags
